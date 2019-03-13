@@ -4,52 +4,63 @@ function [wl,measured,include,target,c,wlrange,leafbio,outdirname] = input_data
 d                       = d(~isnan(d(:,1)),:);
 
 %% Tell me, where do I find your measured reflectance spectrum, and where should I write the results to 
-outdirname              = fullfile(txt(3,2),txt(10,2));
+outdirname              = [char(txt(3,2)),char(txt(11,2))];
 
-wlfilename              = fullfile(txt(2,2),txt(4,2));
-reflfilename            = fullfile(txt(2,2),txt(5,2));
-tranfilename            = fullfile(txt(2,2),txt(6,2));
-irrfilename             = fullfile(txt(2,2),txt(7,2));
-Fufilename              = fullfile(txt(2,2),txt(8,2));
-Fdfilename              = fullfile(txt(2,2),txt(9,2));
+wlfilename              = [char(txt(2,2)),char(txt(4,2))];
+reflfilename            = [char(txt(2,2)),char(txt(5,2))];
+tranfilename            = [char(txt(2,2)),char(txt(6,2))];
+stdfilename             = [char(txt(2,2)),char(txt(7,2))];
+irrfilename             = [char(txt(2,2)),char(txt(8,2))];
+Fufilename              = [char(txt(2,2)),char(txt(9,2))];
+Fdfilename              = [char(txt(2,2)),char(txt(10,2))];
 
-wl                      = load(wlfilename{:});
-measured.refl           = load(reflfilename{:});
-measured.tran           = load(tranfilename{:});
+rowheader               = d(1,1);
+columnheader            = d(2,1);
 
-if ~strcmp(txt(7,2),''),   measured.E = load(irrfilename{:}); end
-if ~strcmp(txt(8,2),''),    measured.Fu = load(Fufilename{:}); end
-if ~strcmp(txt(9,2),''),    measured.Fd = load(Fdfilename{:}); end    
+wl                      = load(wlfilename);%dlmread(wlfilename,'',rowheader,0);
+measured.refl           = load(reflfilename);%dlmread(reflfilename,'',rowheader,columnheader);
+measured.tran           = load(tranfilename);%dlmread(tranfilename,'',rowheader,columnheader);
+wl = wl(:,1);
+
+if ~strcmp(txt(7,2),''),   measured.stdmeas = dlmread(stdfilename,'',rowheader,columnheader); else measured.std = .03*ones(length(wl),size(measured.refl,2)); end
+if ~strcmp(txt(8,2),''),   measured.E = dlmread(irrfilename,'',rowheader,columnheader); end
+if ~strcmp(txt(9,2),''),   measured.Fu = dlmread(Fufilename,'',rowheader,columnheader); end
+if ~strcmp(txt(10,2),''),  measured.Fd = dlmread(Fdfilename,'',rowheader,columnheader); end    
+
 
 %% Which columns in the reflectance/transmittance should I use ?
 % in other words: how many spectra do you want to tune?
-c               = d(1,:);%-999; % 1: first column ; 2: second column, [1,2]: first and second, ect
+c               = d(3,:);%-999; % 1: first column ; 2: second column, [1,2]: first and second, ect
                         % -999: all columns in the file
 
-include.Cab     = d(2,1);
-include.Cdm     = d(3,1);
-include.Cw      = d(4,1);
-include.Cs      = d(5,1);
-include.Cca     = d(6,1);
-include.N       = d(7,1);
+include.Cab     = d(4,1);
+include.Cdm     = d(5,1);
+include.Cw      = d(6,1);
+include.Cs      = d(7,1);
+include.Cca     = d(8,1);
+include.Cant 	= d(9,1);
+include.Cx 	= d(10,1);
+include.N       = d(11,1);
 
 %% which outputs should I calibrate?
-target          = d(8,1); %#ok<*NASGU> %0: calibrate T&R, 1: calibrate only R; 2: calibrate only T
+target          = d(12,1); %#ok<*NASGU> %0: calibrate T&R, 1: calibrate only R; 2: calibrate only T
 
 %% which spectral region should I calibrate?
-wlmin           = d(9,1);          % starting wavelength (nm)
-wlmax           = d(10,1);         % ending wavelength (nm)
+wlmin           = d(13,1);          % starting wavelength (nm)
+wlmax           = d(14,1);         % ending wavelength (nm)
 
 %% initialize parameters for retrieval 
 % these will be calibrated to your reflectance data if you said so above
-leafbio.Cab     = d(11,1);           % chlorophyll content               [ug cm-2]
-leafbio.Cdm     = d(12,1);        % dry matter content                [g cm-2]
-leafbio.Cw      = d(13,1);        % leaf water thickness equivalent   [cm]
-leafbio.Cs      = d(14,1);          % senescent material                [fraction]
-leafbio.Cca     = d(15,1);            % carotenoids                       [?]
-leafbio.N       = d(16,1);          % leaf structure parameter (affects the ratio of refl: transmittance) []
-leafbio.fqe(2)  = d(17,1);                     % quantum yield
-leafbio.fqe(1)  = d(18,1);
+leafbio.Cab     = d(15,1);           % chlorophyll content               [ug cm-2]
+leafbio.Cdm     = d(16,1);        % dry matter content                [g cm-2]
+leafbio.Cw      = d(17,1);        % leaf water thickness equivalent   [cm]
+leafbio.Cs      = d(18,1);          % senescent material                [fraction]
+leafbio.Cca     = d(19,1);            % carotenoids                       [mug cm-2]
+leafbio.Cant     = d(20,1);            % carotenoids                       [mug cm-2]
+leafbio.Cx     = d(21,1);            % carotenoids                       [mug cm-2]
+leafbio.N       = d(22,1);          % leaf structure parameter (affects the ratio of refl: transmittance) []
+leafbio.fqe     = d(23,1);                     % quantum yield
+
 
 wlrange.wlmin   = wlmin;
 wlrange.wlmax   = wlmax;
