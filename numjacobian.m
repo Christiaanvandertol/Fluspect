@@ -24,7 +24,7 @@ leafbio.Cs      = params(4);
 leafbio.Cca     = params(5);
 leafbio.N       = params(6);
 
-leafopt = fluspect_B_CX_PSI_PSII_combined(spectral,leafbio,optipar);
+leafopt = fluspect_B_CX(spectral,leafbio,optipar);
 r = leafopt.refl;
 t = leafopt.tran;
 

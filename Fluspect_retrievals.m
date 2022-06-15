@@ -1,26 +1,7 @@
-function [er,params0,params1,spectral,reflFluspect,tranFluspect,leafopt,leafbio,leafopt_all, leafbio_all,optipar]= Fluspect_retrievals(leafbio,c,include,target,measured,wl,wlrange,optipar)
+function [er,params0,params1,spectral,reflFluspect,tranFluspect,leafopt,leafbio,leafopt_all, leafbio_all,optipar]= Fluspect_retrievals(leafbio,c,include,target,measured,wl,wlrange,optipar,spectral)
 
-%% get constants
-global constants
-[constants] = define_constants();
-
-%% the input for FLUSPECT
-load Optipar2017_ProspectD.mat
-%O = dlmread('../data/input/fluspect_data/Optipar_2013.csv',',',1,0);
-%O = xlsread('../data/input/fluspect_data/Optipar_2015.xlsx');
-% optipar.nr     = O(:,2);
-% optipar.Kab    = O(:,3);
-% optipar.Kca    = O(:,4);
-% optipar.Ks     = O(:,5);
-% optipar.Kw     = O(:,6);
-% optipar.Kdm    = O(:,7);
-% optipar.phiI   = O(:,9);
-% optipar.phiII  = O(:,10);
-% optipar.KcaV   = O(:,14);
-% optipar.KcaZ   = O(:,15);
 
 %% Define spectral regions
-spectral        = define_bands;
 nwlP            = length(spectral.wlP);
 nwlT            = length(spectral.wlT);
 spectral.IwlP   = 1 : nwlP;
@@ -35,9 +16,9 @@ measured.stdP = interp1(spectral.wlM,measured.std,spectral.wlP);
 
 %% define output structures
 if length(c)>1
-    [leafbio_all.Cab,leafbio_all.Cw,leafbio_all.Cdm, leafbio_all.Cs,leafbio_all.Cant,leafbio_all.Cca,leafbio_all.N,leafbio_all.Cx,leafbio_all.fqe_opt,leafopt_all.er2] = deal(zeros(length(c),1));
+    [leafbio_all.Cab,leafbio_all.Cw,leafbio_all.Cdm, leafbio_all.Cs,leafbio_all.Cant,leafbio_all.Cca,leafbio_all.N,leafbio_all.V2Z,leafbio_all.fqe_opt,leafopt_all.er2] = deal(zeros(length(c),1));
     [leafopt_all.refl,leafopt_all.tran] = deal(zeros(length(spectral.wlP),length(c)));
-    leafbio_all.STDV = zeros(length(c),6);
+   % leafbio_all.STDV = zeros(length(c),6);
 end
 
 %% initial parameter values, and boundary boxes
@@ -48,7 +29,7 @@ params0(3)      = leafbio.Cw;
 params0(4)      = leafbio.Cs;
 params0(5)      = leafbio.Cca;
 params0(6)      = leafbio.Cant;
-params0(7)      = leafbio.Cx;
+params0(7)      = leafbio.V2Z;
 params0(8)      = leafbio.N;
 
 %params0(9)      = fluor.PS;
@@ -72,23 +53,23 @@ for j = c
     else
         params1 = params0;
     end
-    J=numjacobian(params1,spectral,leafbio,optipar);
-
-    [JR,JT]  = deal(zeros(length(spectral.wlP),length(params1)));
-    JR(:) = J(:,1,:);
-    JT(:) = J(:,2,:);
-    
-    PR = abs((inv(JR.'*JR)) * JR.' * measurement.stdP(:,j));
-    PT = abs((inv(JT.'*JT)) * JT.' * measurement.stdP(:,j));
-    
-    switch target
-        case 1
-            stdP = PR;
-        case 2
-            stdP = PT;
-        case 0
-            stdP = 1./(1./PR+1./PT);
-    end  
+%     J=numjacobian(params1,spectral,leafbio,optipar);
+% 
+%     [JR,JT]  = deal(zeros(length(spectral.wlP),length(params1)));
+%     JR(:) = J(:,1,:);
+%     JT(:) = J(:,2,:);
+%     
+%     PR = abs((inv(JR.'*JR)) * JR.' * measurement.stdP(:,j));
+%     PT = abs((inv(JT.'*JT)) * JT.' * measurement.stdP(:,j));
+%     
+%     switch target
+%         case 1
+%             stdP = PR;
+%         case 2
+%             stdP = PT;
+%         case 0
+%             stdP = 1./(1./PR+1./PT);
+%     end  
     
     % done, this is what comes out
     [er,reflFluspect,tranFluspect,leafopt] = COST_4Fluspect(params1,measurement,input);
@@ -99,9 +80,9 @@ for j = c
     leafbio.Cs      = params1(4);
     leafbio.Cca     = params1(5);
     leafbio.Cant    = params1(6);
-    leafbio.Cx      = params1(7);
+    leafbio.V2Z      = params1(7);
     leafbio.N       = params1(8);
-    leafbio.STD     = stdP';
+  %  leafbio.STD     = stdP';
     leafopt.rmse     = sqrt(er'*er./length(er));
     params0(1)      = leafbio.Cab;
 
@@ -130,8 +111,8 @@ for j = c
         leafbio_all.Cs(j)  = leafbio.Cs;
  	    leafbio_all.Cant(j) = leafbio.Cant;
         leafbio_all.N(j)   = leafbio.N;
-        leafbio_all.Cx(j)   = leafbio.Cx;
-        leafbio_all.STD(j,:) = leafbio.STD;
+        leafbio_all.V2Z(j)   = leafbio.V2Z;
+    %    leafbio_all.STD(j,:) = leafbio.STD;
         if isfield(leafbio,'fqe_opt')
             leafbio_all.fqe_opt(j,:) = leafbio.fqe_opt;
         end    

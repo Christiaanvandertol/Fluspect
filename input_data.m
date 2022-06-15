@@ -1,66 +1,67 @@
-function [wl,measured,include,target,c,wlrange,leafbio,outdirname] = input_data
+%Filenames and location of measured spectra and output results				
+measdir = 'data\measured\exampledata\';			% Directory of measurements
+outdirname = 'data\retrieved\test\';              % directory to store the output
+wlfilename = 'wl.txt';                          % file with the wavelengths
+reflfilename = 'reflectance.txt';                 % Measured reflectance [0,1]
+tranfilename = 'transmittance.txt';              % measured transmittance [0,1]
+stdfilename = '';                           %Standard deviaton of measured r and t				
+irrfilename     = '';                           %Incident light [W m-2 um-1]				OPTIONAL: the model needs this for the calculation of fluoresence (not for reflectance and transmittance)
+Fufilename = '';                                %Measured fluorescence up				OPTIONAL: this file is not used in the calculation but only for plotting
+Fdfilename = '';                                %Measured fluorescence down				OPTIONAL: this file is not used in the calculation but only for plotting
 
-[d, txt]                = xlsread('input_data.xlsx');
-d                       = d(~isnan(d(:,1)),:);
+Simulation_name = 'test';                   %A subdirectory will be created in the output directory with this name
 
-%% Tell me, where do I find your measured reflectance spectrum, and where should I write the results to 
-outdirname              = [char(txt(3,2)),char(txt(11,2))];
+rowheader     = 1;
+columnheader   = 0;
+					
+%% Which columns in the reflectance/transmittance should I use ?				
+%in other words: how many spectra do you want to tune?				
+c=	-999;%		 1: first column ; 2: second column, [1,2]: first and second, ect, -999: all columns in the file	
+                      				
+%which parameters should I tune?				
+include.Cab	=1	;		
+include.Cdm	=1	;		
+include.Cw	=1	;		
+include.Cs	=1	;		
+include.Cca	=1	;		
+include.Cant=0;			
+include.V2Z	=0	;		
+include.N	=1	;		
+				
+%Which outputs should I calibrate?				
+target =   	0	;%	0: calibrate T and R, 1: calibrate only R; 2: calibrate only T	
+				
+%Which spectral region should I calibrate (measured wavelengths can span longer range, but the range specified here is used for calibration				
+wlmin=	400	;	%starting wavelength (nm)	
+wlmax=	2400;	%	ending wavelength (nm)	
+	
+%%
+%Initialize parameters for retrieval 				
+%These will be calibrated to your reflectance data if you said so above				
+leafbio.Cab     =	28	;	%chlorophyll content               [ug cm-2]	
+leafbio.Cdm     =	0.001;	%	dry matter content                [g cm-2]	
+leafbio.Cw	    =   0.002		;%leaf water thickness equivalent   [cm]	
+leafbio.Cs      = 	0.015;		%senescent (brown) pigments                [unitless]	
+leafbio.Cca     =	4	;	%carotenoids                       [mug cm-2]	
+leafbio.Cant    =	1	;	%anthocyanin content [mug cm-2]	
+leafbio.Cx      =	0	;	%xanthophyll cycle status [0-3]	
+leafbio.N 	    = 1.5	;	%leaf structure parameter (affects the ratio of refl: transmittance) []
+leafbio.Cp      = 0; % new PROSPECT-PRO parameter (read lastest PROSPECT paper)
+leafbio.Cbc     = 0;% new PROSPECT-PRO parameter (read lastest PROSPECT paper)
+leafbio.fqe     =	0.01;	%	Fluorescence quantum yield efficiency	
 
-wlfilename              = [char(txt(2,2)),char(txt(4,2))];
-reflfilename            = [char(txt(2,2)),char(txt(5,2))];
-tranfilename            = [char(txt(2,2)),char(txt(6,2))];
-stdfilename             = [char(txt(2,2)),char(txt(7,2))];
-irrfilename             = [char(txt(2,2)),char(txt(8,2))];
-Fufilename              = [char(txt(2,2)),char(txt(9,2))];
-Fdfilename              = [char(txt(2,2)),char(txt(10,2))];
 
-rowheader               = d(1,1);
-columnheader            = d(2,1);
+%% DO NOT EDIT THE TEXT BELOW
 
-wl                      = load(wlfilename);%dlmread(wlfilename,'',rowheader,0);
-measured.refl           = load(reflfilename);%dlmread(reflfilename,'',rowheader,columnheader);
-measured.tran           = load(tranfilename);%dlmread(tranfilename,'',rowheader,columnheader);
+wl                      = load([measdir wlfilename]);%dlmread(wlfilename,'',rowheader,0);
+measured.refl           = load([measdir reflfilename]);%dlmread(reflfilename,'',rowheader,columnheader);
+measured.tran           = load([measdir tranfilename]);%dlmread(tranfilename,'',rowheader,columnheader);
 wl = wl(:,1);
 
-if ~strcmp(txt(7,2),''),   measured.stdmeas = dlmread(stdfilename,'',rowheader,columnheader); else measured.std = .03*ones(length(wl),size(measured.refl,2)); end
-if ~strcmp(txt(8,2),''),   measured.E = dlmread(irrfilename,'',rowheader,columnheader); end
-if ~strcmp(txt(9,2),''),   measured.Fu = dlmread(Fufilename,'',rowheader,columnheader); end
-if ~strcmp(txt(10,2),''),  measured.Fd = dlmread(Fdfilename,'',rowheader,columnheader); end    
-
-
-%% Which columns in the reflectance/transmittance should I use ?
-% in other words: how many spectra do you want to tune?
-c               = d(3,:);%-999; % 1: first column ; 2: second column, [1,2]: first and second, ect
-                        % -999: all columns in the file
-
-include.Cab     = d(4,1);
-include.Cdm     = d(5,1);
-include.Cw      = d(6,1);
-include.Cs      = d(7,1);
-include.Cca     = d(8,1);
-include.Cant 	= d(9,1);
-include.Cx 	= d(10,1);
-include.N       = d(11,1);
-
-%% which outputs should I calibrate?
-target          = d(12,1); %#ok<*NASGU> %0: calibrate T&R, 1: calibrate only R; 2: calibrate only T
-
-%% which spectral region should I calibrate?
-wlmin           = d(13,1);          % starting wavelength (nm)
-wlmax           = d(14,1);         % ending wavelength (nm)
-
-%% initialize parameters for retrieval 
-% these will be calibrated to your reflectance data if you said so above
-leafbio.Cab     = d(15,1);           % chlorophyll content               [ug cm-2]
-leafbio.Cdm     = d(16,1);        % dry matter content                [g cm-2]
-leafbio.Cw      = d(17,1);        % leaf water thickness equivalent   [cm]
-leafbio.Cs      = d(18,1);          % senescent material                [fraction]
-leafbio.Cca     = d(19,1);            % carotenoids                       [mug cm-2]
-leafbio.Cant     = d(20,1);            % carotenoids                       [mug cm-2]
-leafbio.Cx     = d(21,1);            % carotenoids                       [mug cm-2]
-leafbio.N       = d(22,1);          % leaf structure parameter (affects the ratio of refl: transmittance) []
-leafbio.fqe     = d(23,1);                     % quantum yield
-
+if ~isempty(stdfilename),   measured.stdmeas = dlmread([measdir stdfilename],'',rowheader,columnheader); else measured.std = .03*ones(length(wl),size(measured.refl,2)); end %#ok<*DLMRD> 
+if ~isempty(irrfilename),   measured.E = dlmread([measdir irrfilename],'',rowheader,columnheader); end
+if ~isempty(Fufilename),   measured.Fu = dlmread([measdir Fufilename],'',rowheader,columnheader); end
+if ~isempty(Fdfilename),  measured.Fd = dlmread([measdir Fdfilename],'',rowheader,columnheader); end  
 
 wlrange.wlmin   = wlmin;
 wlrange.wlmax   = wlmax;
