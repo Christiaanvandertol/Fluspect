@@ -1,4 +1,3 @@
-addpath data\input\
 close all
 
 input_data; 
